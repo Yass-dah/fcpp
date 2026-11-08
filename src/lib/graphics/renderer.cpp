@@ -182,7 +182,13 @@ void renderer::allocateGlyphTextures() {
     glGenTextures(1, &s_fontAtlas);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, s_fontAtlas);
+
+    #ifdef __EMSCRIPTEN__
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, atlasWidth, atlasHeight, 0, GL_RED, GL_UNSIGNED_BYTE, atlas.data());
+    #else 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, atlasWidth, atlasHeight, 0, GL_RED, GL_UNSIGNED_BYTE, atlas.data());
+    #endif
+
     // Set texture options
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -238,12 +244,21 @@ renderer::renderer(size_t antialias, std::string name, bool master, GLFWwindow* 
     /* DEFINITION */
     // Initialize GLFW
     if (m_master) glfwInit();
-
+    
     // Set context options
+    #ifdef __EMSCRIPTEN__
+    // WebGL 2 configuration
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+    #else
+    // Desktop configuration
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+    #endif
+
     if (antialias > 1)
         glfwWindowHint(GLFW_SAMPLES, antialias);
 
@@ -382,9 +397,11 @@ void renderer::initializeContext(bool master) {
     // Set window's context as thread's current
     glfwMakeContextCurrent(m_window);
 
-    // Initialize GLAD
-    if (master and !gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-        throw std::runtime_error("ERROR::RENDERER::GLAD::INIT_FAILED\n");
+    #ifndef __EMSCRIPTEN__ 
+        // Initialize GLAD
+        if (master and !gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+            throw std::runtime_error("ERROR::RENDERER::GLAD::INIT_FAILED\n");
+    #endif
 
     // Enabling V-Sync
     glfwSwapInterval(1);
@@ -396,8 +413,10 @@ void renderer::initializeContext(bool master) {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // Enable antialiasing
-    glEnable(GL_MULTISAMPLE);
+    #ifndef __EMSCRIPTEN__
+        // Enable antialiasing
+        glEnable(GL_MULTISAMPLE);
+    #endif
 
     // Initialize common resources
     initializeCommon();
@@ -431,6 +450,10 @@ void renderer::swapAndNext() {
         glViewport(0, 0, m_framebufferWidth, m_framebufferHeight);
         m_resizeOnSwap = false;
     }
+
+    #ifdef __EMSCRIPTEN__
+        if (m_master) return;
+    #endif
 
     // Clear frame
     glClearColor(m_background[0], m_background[1], m_background[2], m_background[3]);
