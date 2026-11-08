@@ -211,7 +211,7 @@ if(FCPP_BUILD_GL)
         lib/simulation/displayer.cpp
     )
 endif(FCPP_BUILD_GL)
-if(WIN32)
+if(WIN32 OR EMSCRIPTEN)
     add_library(fcpp STATIC ${SOURCE_LIST})
 else(WIN32)
     add_library(fcpp SHARED ${SOURCE_LIST})
@@ -266,6 +266,7 @@ if(FCPP_BUILD_GL)
     option(GLFW_BUILD_EXAMPLES "Build the GLFW example programs" OFF)
     option(GLFW_BUILD_TESTS "Build the GLFW test programs" OFF)
     option(GLFW_BUILD_DOCS "Build the GLFW documentation" OFF)
+    message("break line 8")
     add_library(
         glad
         ./external/glad-core-3.3/include/KHR/khrplatform.h
@@ -291,18 +292,40 @@ if(FCPP_BUILD_GL)
         GIT_TAG        VER-2-14-3
         GIT_SHALLOW    TRUE
     )
-    FetchContent_MakeAvailable(glm glfw freetype)
-    target_link_libraries(
-        fcpp PUBLIC
-        glad
-        glm
-        glfw
-        freetype
-    )
-    if(UNIX)
-        target_compile_options(glad PUBLIC -fPIC)
-        target_compile_options(freetype PUBLIC -fPIC)
-    endif(UNIX)
+    if(EMSCRIPTEN)
+        set(FT_DISABLE_HARFBUZZ TRUE CACHE BOOL "" FORCE)
+        FetchContent_MakeAvailable(glm freetype)
+        target_compile_options(freetype PUBLIC -fPIC -matomics -mbulk-memory)
+        target_compile_options(glm PUBLIC -matomics -mbulk-memory)
+        target_link_libraries(fcpp PUBLIC glm freetype)
+        target_compile_options(fcpp PUBLIC -matomics -mbulk-memory)
+        target_link_options(fcpp PUBLIC
+            --use-port=contrib.glfw3
+            -sFULL_ES3=1
+            -sMIN_WEBGL_VERSION=2
+            -sMAX_WEBGL_VERSION=2
+            -sSHARED_MEMORY=1
+            -sNO_DISABLE_EXCEPTION_CATCHING
+            -sASSERTIONS
+            -sSTACK_SIZE=1MB
+            -sALLOW_MEMORY_GROWTH=1 
+            --preload-file=${CMAKE_BINARY_DIR}/fonts@/fonts
+            --preload-file=${CMAKE_BINARY_DIR}/shaders@/shaders
+            --preload-file=${CMAKE_BINARY_DIR}/../textures@/textures)
+    else()
+        FetchContent_MakeAvailable(glm glfw freetype)
+        target_link_libraries(
+            fcpp PUBLIC
+            glad
+            glm
+            glfw
+            freetype
+        )
+        if(UNIX)
+            target_compile_options(glad PUBLIC -fPIC)
+            target_compile_options(freetype PUBLIC -fPIC)
+        endif(UNIX)
+    endif()
 endif(FCPP_BUILD_GL)
 
 ################
