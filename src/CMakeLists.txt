@@ -19,8 +19,8 @@ macro(fcpp_setup)
     set(CMAKE_CXX_STANDARD_REQUIRED True)
     set(CMAKE_CXX_FLAGS_DEBUG   "${CMAKE_CXX_FLAGS_DEBUG}   -g")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
-    if(NOT CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "arm64")
-        # -march=native is not supported by arm64
+    if(NOT CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "arm64" AND NOT EMSCRIPTEN)
+        # -march=native is not supported by arm64 and emscripten
         set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
     endif()
     if(FCPP_DISABLE_THREADS)
@@ -306,7 +306,8 @@ if(FCPP_BUILD_GL)
             -sMAX_WEBGL_VERSION=2
             -sSHARED_MEMORY=1
             -sNO_DISABLE_EXCEPTION_CATCHING
-            -sASSERTIONS
+            -sASSERTIONS=0
+            -O3
             -sSTACK_SIZE=1MB
             -sALLOW_MEMORY_GROWTH=1
             --preload-file=${CMAKE_BINARY_DIR}/fonts@/fonts
