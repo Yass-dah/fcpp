@@ -1234,6 +1234,9 @@ struct displayer {
             void update() {
                 times_t rt = std::min(m_refresh, P::net::real_time());
                 if (rt < warped_next()) {
+                    #ifdef __EMSCRIPTEN__
+                        m_renderer.clearFrame();
+                    #endif
                     times_t t = internal_time();
                     auto n_beg = P::net::node_begin();
                     auto n_end = P::net::node_end();

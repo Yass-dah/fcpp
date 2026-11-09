@@ -152,6 +152,11 @@ namespace fcpp {
             //! @brief Sets the main color theme to be used in the user interface.
             void setColorTheme(color background, color foreground, color selection);
 
+            #ifdef __EMSCRIPTEN__
+                //! @brief Clears the frame (called for each update status)
+                void clearFrame() const;
+            #endif
+            
         private:
             //! @brief Default path to vertex_phong shader.
             static std::string const VERTEX_DIFF_PATH;

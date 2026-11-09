@@ -1012,3 +1012,10 @@ void renderer::setColorTheme(color background, color foreground, color selection
     m_foreground = {foreground.rgba[0], foreground.rgba[1], foreground.rgba[2], foreground.rgba[3]};
     m_rectangle_col = {selection.rgba[0], selection.rgba[1], selection.rgba[2], selection.rgba[3]*0.5f};
 }
+
+#ifdef __EMSCRIPTEN__
+    void renderer::clearFrame() const {
+        glClearColor(m_background[0], m_background[1], m_background[2], m_background[3]);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    }
+#endif

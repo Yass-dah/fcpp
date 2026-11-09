@@ -213,9 +213,9 @@ if(FCPP_BUILD_GL)
 endif(FCPP_BUILD_GL)
 if(WIN32 OR EMSCRIPTEN)
     add_library(fcpp STATIC ${SOURCE_LIST})
-else(WIN32)
+else(WIN32 OR EMSCRIPTEN)
     add_library(fcpp SHARED ${SOURCE_LIST})
-endif(WIN32)
+endif(WIN32 OR EMSCRIPTEN)
 target_include_directories(fcpp PUBLIC .)
 if(FCPP_BUILD_GL)
     fcpp_copy(fcpp ${PROJECT_SOURCE_DIR}/lib/graphics ${CMAKE_BINARY_DIR} shaders)
@@ -266,7 +266,6 @@ if(FCPP_BUILD_GL)
     option(GLFW_BUILD_EXAMPLES "Build the GLFW example programs" OFF)
     option(GLFW_BUILD_TESTS "Build the GLFW test programs" OFF)
     option(GLFW_BUILD_DOCS "Build the GLFW documentation" OFF)
-    message("break line 8")
     add_library(
         glad
         ./external/glad-core-3.3/include/KHR/khrplatform.h
@@ -293,6 +292,7 @@ if(FCPP_BUILD_GL)
         GIT_SHALLOW    TRUE
     )
     if(EMSCRIPTEN)
+        set(CMAKE_DISABLE_FIND_PACKAGE_BrotliDec True)
         set(FT_DISABLE_HARFBUZZ TRUE CACHE BOOL "" FORCE)
         FetchContent_MakeAvailable(glm freetype)
         target_compile_options(freetype PUBLIC -fPIC -matomics -mbulk-memory)
@@ -308,7 +308,7 @@ if(FCPP_BUILD_GL)
             -sNO_DISABLE_EXCEPTION_CATCHING
             -sASSERTIONS
             -sSTACK_SIZE=1MB
-            -sALLOW_MEMORY_GROWTH=1 
+            -sALLOW_MEMORY_GROWTH=1
             --preload-file=${CMAKE_BINARY_DIR}/fonts@/fonts
             --preload-file=${CMAKE_BINARY_DIR}/shaders@/shaders
             --preload-file=${CMAKE_BINARY_DIR}/../textures@/textures)
