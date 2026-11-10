@@ -203,6 +203,18 @@ namespace tags {
 
 
 #ifdef FCPP_GUI
+#ifdef __EMSCRIPTEN__
+//! @brief Placeholder: no separate info windows on the Web.
+template <typename F>
+class info_window {
+  public:
+    template <typename N>
+    info_window(N&, std::vector<device_t>) {}
+    bool closing() const { return true; }
+    template <typename N>
+    void update_values(N&) {}
+};
+#else
 //! @brief Class displaying detailed node information in a separate window.
 template <typename F>
 class info_window {
@@ -729,6 +741,7 @@ class info_window {
     //! @brief For each storage field (same order as m_types).
     std::vector<bool> m_editable;
 };
+#endif
 
 
 //! @cond INTERNAL
