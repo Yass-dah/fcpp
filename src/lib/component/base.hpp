@@ -255,18 +255,21 @@ struct base {
 
             #ifdef __EMSCRIPTEN__
                 private:
-                //! @brief Static pointer for emscripten callback
-                inline static net* s_wasm_instance = nullptr;
+                //! @brief Static wrapper containing wasm instance for emscripten callback
+                static net*& wasm_instance() {
+                    static net* inst = nullptr;
+                    return inst;
+                }
 
                 //! @brief Static callback required by emscripten_set_main_loop
                 static void wasm_loop_callback() {
-                    if (s_wasm_instance) static_cast<typename F::net*>(s_wasm_instance)->update();
+                    if (wasm_instance()) static_cast<typename F::net*>(wasm_instance())->update();
                 }
 
                 public:
                 //! @brief Run main loop in browser by requestAnimationFrame
                 void run(times_t = TIME_FAR) {
-                    s_wasm_instance = this;
+                    wasm_instance() = this;
                     emscripten_set_main_loop(wasm_loop_callback, 0, 1);
                 }
             #else

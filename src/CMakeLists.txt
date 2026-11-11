@@ -14,6 +14,15 @@ function(fcpp_copy target source dest folder)
     endif()
 endfunction()
 
+function(fcpp_copy_file target file folder)
+    add_custom_command(
+        TARGET ${target} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        ${file} ${folder}
+    )
+endfunction()
+
+
 macro(fcpp_setup)
     set(CMAKE_CXX_STANDARD 14)
     set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -56,11 +65,18 @@ function(fcpp_target target_executable enable_gui)
     if(${enable_gui} STREQUAL ON)
         if(FCPP_BUILD_GL)
             fcpp_copy(${target_name} ${PROJECT_SOURCE_DIR} ${CMAKE_BINARY_DIR} textures)
+            if(EMSCRIPTEN)
+                target_link_options(fcpp PUBLIC --preload-file=${CMAKE_BINARY_DIR}/../textures@/textures)
+            endif()
             target_compile_options(${target_name} PUBLIC -DFCPP_CONFIGURATION=FCPP_CONFIGURATION_DEPENDENT -DFCPP_GUI)
         endif()
     endif()
     fcpp_copy(${target_name} ${PROJECT_SOURCE_DIR} ${CMAKE_BINARY_DIR} input)
     set_target_properties(${target_name} PROPERTIES PREFIX "run/")
+    if(EMSCRIPTEN)
+        set_target_properties(${target_name} PROPERTIES SUFFIX ".html")
+        fcpp_copy_file(${target_name} "$<TARGET_FILE:fcpp>" "${CMAKE_BINARY_DIR}/run")
+    endif()
 endfunction()
 
 function(fcpp_header target_executable enable_gui)
@@ -220,6 +236,10 @@ target_include_directories(fcpp PUBLIC .)
 if(FCPP_BUILD_GL)
     fcpp_copy(fcpp ${PROJECT_SOURCE_DIR}/lib/graphics ${CMAKE_BINARY_DIR} shaders)
     fcpp_copy(fcpp ${PROJECT_SOURCE_DIR}/lib/graphics ${CMAKE_BINARY_DIR} fonts)
+    if(EMSCRIPTEN)
+        target_link_options(fcpp PUBLIC --preload-file=${CMAKE_BINARY_DIR}/fonts@/fonts
+            --preload-file=${CMAKE_BINARY_DIR}/shaders@/shaders)
+    endif()
 endif(FCPP_BUILD_GL)
 
 ######################
@@ -266,25 +286,29 @@ if(FCPP_BUILD_GL)
     option(GLFW_BUILD_EXAMPLES "Build the GLFW example programs" OFF)
     option(GLFW_BUILD_TESTS "Build the GLFW test programs" OFF)
     option(GLFW_BUILD_DOCS "Build the GLFW documentation" OFF)
-    add_library(
-        glad
-        ./external/glad-core-3.3/include/KHR/khrplatform.h
-        ./external/glad-core-3.3/include/glad/glad.h
-        ./external/glad-core-3.3/src/glad.c
-    )
-    target_include_directories(glad PUBLIC ./external/glad-core-3.3/include)
+    if(NOT EMSCRIPTEN)
+        add_library(
+            glad
+            ./external/glad-core-3.3/include/KHR/khrplatform.h
+            ./external/glad-core-3.3/include/glad/glad.h
+            ./external/glad-core-3.3/src/glad.c
+        )
+        target_include_directories(glad PUBLIC ./external/glad-core-3.3/include)
+    endif()
     FetchContent_Declare(
         glm
         GIT_REPOSITORY https://github.com/g-truc/glm.git
         GIT_TAG        1.0.3
         GIT_SHALLOW    TRUE
     )
-    FetchContent_Declare(
-        glfw
-        GIT_REPOSITORY https://github.com/glfw/glfw.git
-        GIT_TAG        3.4
-        GIT_SHALLOW    TRUE
-    )
+    if(NOT EMSCRIPTEN)
+        FetchContent_Declare(
+            glfw
+            GIT_REPOSITORY https://github.com/glfw/glfw.git
+            GIT_TAG        3.4
+            GIT_SHALLOW    TRUE
+        )
+    endif()
     FetchContent_Declare(
         freetype
         GIT_REPOSITORY https://github.com/freetype/freetype.git
@@ -306,13 +330,9 @@ if(FCPP_BUILD_GL)
             -sMAX_WEBGL_VERSION=2
             -sSHARED_MEMORY=1
             -sNO_DISABLE_EXCEPTION_CATCHING
-            -sASSERTIONS=0
             -O3
             -sSTACK_SIZE=1MB
-            -sALLOW_MEMORY_GROWTH=1
-            --preload-file=${CMAKE_BINARY_DIR}/fonts@/fonts
-            --preload-file=${CMAKE_BINARY_DIR}/shaders@/shaders
-            --preload-file=${CMAKE_BINARY_DIR}/../textures@/textures)
+            -sGROWABLE_ARRAYBUFFERS=2)
     else()
         FetchContent_MakeAvailable(glm glfw freetype)
         target_link_libraries(
