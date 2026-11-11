@@ -433,7 +433,11 @@ void renderer::initializeContext(bool master) {
 
     // Set initial window metrics
     glfwGetFramebufferSize(m_window, (int*)&m_framebufferWidth, (int*)&m_framebufferHeight);
+    #ifdef __EMSCRIPTEN__
+    m_renderScale = (double)m_framebufferWidth / m_windowWidth;
+    #else
     m_renderScale = m_framebufferWidth / m_windowWidth;
+    #endif
     m_camera.setScreen(m_framebufferWidth, m_framebufferHeight);
     glViewport(0, 0, m_framebufferWidth, m_framebufferHeight);
 
@@ -1003,7 +1007,11 @@ void renderer::viewportResize(int winWidth, int winHeight, int fbWidth, int fbHe
     m_windowHeight = winHeight;
     m_framebufferWidth = fbWidth;
     m_framebufferHeight = fbHeight;
+    #ifdef __EMSCRIPTEN__
+    m_renderScale = (double)fbWidth / winWidth;
+    #else
     m_renderScale = fbWidth / winWidth;
+    #endif
     m_camera.setScreen(fbWidth, fbHeight);
 }
 
