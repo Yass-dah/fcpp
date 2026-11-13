@@ -76,6 +76,7 @@ function(fcpp_target target_executable enable_gui)
     if(EMSCRIPTEN)
         set_target_properties(${target_name} PROPERTIES SUFFIX ".html")
         fcpp_copy_file(${target_name} "$<TARGET_FILE:fcpp>" "${CMAKE_BINARY_DIR}/run")
+        fcpp_copy_file(${target_name} "${CMAKE_BINARY_DIR}/fcpp/src/libstb_image.a" "${CMAKE_BINARY_DIR}/run")
     endif()
 endfunction()
 
@@ -237,7 +238,8 @@ if(FCPP_BUILD_GL)
     fcpp_copy(fcpp ${PROJECT_SOURCE_DIR}/lib/graphics ${CMAKE_BINARY_DIR} shaders)
     fcpp_copy(fcpp ${PROJECT_SOURCE_DIR}/lib/graphics ${CMAKE_BINARY_DIR} fonts)
     if(EMSCRIPTEN)
-        target_link_options(fcpp PUBLIC --preload-file=${CMAKE_BINARY_DIR}/fonts@/fonts
+        target_link_options(fcpp PUBLIC 
+            --preload-file=${CMAKE_BINARY_DIR}/fonts@/fonts
             --preload-file=${CMAKE_BINARY_DIR}/shaders@/shaders)
     endif()
 endif(FCPP_BUILD_GL)
@@ -316,13 +318,16 @@ if(FCPP_BUILD_GL)
         GIT_SHALLOW    TRUE
     )
     if(EMSCRIPTEN)
+        set(CMAKE_DISABLE_FIND_PACKAGE_ZLIB True)
+        set(CMAKE_DISABLE_FIND_PACKAGE_PNG True)
+        set(CMAKE_DISABLE_FIND_PACKAGE_BZip2 True)
         set(CMAKE_DISABLE_FIND_PACKAGE_BrotliDec True)
         set(FT_DISABLE_HARFBUZZ TRUE CACHE BOOL "" FORCE)
         FetchContent_MakeAvailable(glm freetype)
         target_compile_options(freetype PUBLIC -fPIC -matomics -mbulk-memory)
         target_compile_options(glm PUBLIC -matomics -mbulk-memory)
         target_link_libraries(fcpp PUBLIC glm freetype)
-        target_compile_options(fcpp PUBLIC -matomics -mbulk-memory)
+        target_compile_options(fcpp PUBLIC -matomics -mbulk-memory -Wno-shift-count-overflow)
         target_link_options(fcpp PUBLIC
             --use-port=contrib.glfw3
             -sFULL_ES3=1
@@ -330,9 +335,9 @@ if(FCPP_BUILD_GL)
             -sMAX_WEBGL_VERSION=2
             -sSHARED_MEMORY=1
             -sNO_DISABLE_EXCEPTION_CATCHING
-            -O3
             -sSTACK_SIZE=1MB
-            -sGROWABLE_ARRAYBUFFERS=2)
+            -sGROWABLE_ARRAYBUFFERS=2
+            -sINITIAL_MEMORY=67108864)
     else()
         FetchContent_MakeAvailable(glm glfw freetype)
         target_link_libraries(
